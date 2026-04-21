@@ -665,10 +665,34 @@ async function deleteSingle(p){
   await doDelete([p]);updateSafeCta();
 }
 async function doDelete(paths){
-  let deleted=0;
-  for(const fp of paths){try{const r=await fetch('/api/delete',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({filePath:fp})});const d=await r.json();if(d.success){deleted++;pruneFromTree(fullTree,fp);selected.delete(fp);}}catch{}}
+  let deleted=0, trashed=0, failed=[];
+
+  for(const fp of paths){
+    try{
+      const r = await fetch('/api/delete',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({filePath:fp})});
+      const d = await r.json();
+      if(d.success){ deleted++; pruneFromTree(fullTree,fp); selected.delete(fp); }
+      else if(d.needsAuth){
+        // Permission denied — ask user to move to Trash (triggers Touch ID / password)
+        const ok = confirm(`"${fp.split('/').pop()}" needs authentication to delete.\n\nMove it to Trash instead? macOS will ask for your fingerprint or password.`);
+        if(ok){
+          const tr = await fetch('/api/trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filePath:fp})});
+          const td = await tr.json();
+          if(td.success){ trashed++; pruneFromTree(fullTree,fp); selected.delete(fp); }
+          else failed.push(fp.split('/').pop());
+        }
+      } else { failed.push(fp.split('/').pop()); }
+    }catch{ failed.push(fp.split('/').pop()); }
+  }
+
   flatFiles=flattenTree(fullTree);maxFileBytes=flatFiles.reduce((m,f)=>Math.max(m,f.size),1);
-  showToast(`Deleted ${deleted} file${deleted>1?'s':''}`, 'success');
+
+  const parts=[];
+  if(deleted)  parts.push(`${deleted} deleted`);
+  if(trashed)  parts.push(`${trashed} moved to Trash`);
+  if(failed.length) parts.push(`${failed.length} failed`);
+  showToast(parts.join(' · '), failed.length && !deleted && !trashed ? 'error' : 'success');
+
   if(currentView==='graph')renderTreemap(currentNode);else renderList();updateSidebar();
 }
 function pruneFromTree(node,fp){

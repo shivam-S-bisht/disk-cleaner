@@ -117,7 +117,24 @@ app.delete('/api/delete', (req, res) => {
     if (st.isDirectory()) return res.status(400).json({ error: 'Cannot delete directories' });
     fs.unlinkSync(resolved);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    // Signal permission errors separately so the UI can offer trash fallback
+    const needsAuth = e.code === 'EACCES' || e.code === 'EPERM';
+    res.status(needsAuth ? 403 : 500).json({ error: e.message, needsAuth });
+  }
+});
+
+// Move to Trash via osascript — triggers macOS Touch ID / password dialog
+app.post('/api/trash', (req, res) => {
+  const resolved = path.resolve(req.body.filePath || '');
+  if (!fs.existsSync(resolved)) return res.status(404).json({ error: 'File not found' });
+
+  // AppleScript: move to Trash (macOS handles auth natively)
+  const script = `tell application "Finder" to delete POSIX file "${resolved.replace(/"/g, '\\"')}"`;
+  execFile('osascript', ['-e', script], (err, stdout, stderr) => {
+    if (err) return res.status(500).json({ error: stderr || err.message });
+    res.json({ success: true, trashed: true });
+  });
 });
 
 app.listen(PORT, () => console.log(`\n✅  Disk Cleaner → http://localhost:${PORT}\n`));
