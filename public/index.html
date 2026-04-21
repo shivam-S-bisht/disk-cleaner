@@ -27,13 +27,49 @@ header h1 { font-size: 1.1rem; font-weight: 700; }
 .btn-safe    { background: var(--safe);   color: #0f0f13; }
 .btn-danger  { background: var(--danger); color: #fff; }
 
+.view-toggle { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.view-toggle button { cursor: pointer; background: transparent; border: none; color: var(--muted); font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.85rem; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+.view-toggle button.active { background: var(--accent); color: #fff; }
+.view-toggle button:not(.active):hover { color: var(--text); }
+
 .breadcrumb { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.5rem 1.5rem; display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; color: var(--muted); flex-shrink: 0; min-height: 34px; }
 .breadcrumb span { cursor: pointer; } .breadcrumb span:hover { color: var(--accent); }
 .breadcrumb .sep { color: var(--border); cursor: default; }
 
 .main { display: flex; flex: 1; overflow: hidden; }
+.view { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.view.hidden { display: none; }
+
 #treemap-container { flex: 1; position: relative; overflow: hidden; }
 #treemap-container svg { width: 100%; height: 100%; display: block; }
+
+.list-toolbar { padding: 0.6rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; color: var(--muted); flex-shrink: 0; flex-wrap: wrap; }
+.list-toolbar strong { color: var(--text); }
+.list-scroll { flex: 1; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+thead th { background: var(--bg); padding: 0.6rem 0.85rem; text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); border-bottom: 1px solid var(--border); user-select: none; cursor: pointer; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+thead th:hover { color: var(--text); } thead th.sorted { color: var(--accent); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(108,99,255,0.05); }
+tbody tr.row-selected { background: rgba(108,99,255,0.1); }
+td { padding: 0.6rem 0.85rem; vertical-align: middle; white-space: nowrap; }
+td.td-name { font-weight: 500; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+td.td-path { font-family: 'SF Mono','Fira Code',monospace; font-size: 0.72rem; color: var(--muted); max-width: 300px; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+td.td-path:hover { color: var(--accent); }
+td.td-actions { display: flex; gap: 0.4rem; align-items: center; }
+.size-bar-wrap { background: var(--border); border-radius: 3px; height: 3px; width: 60px; margin-top: 3px; }
+.size-bar { height: 100%; border-radius: 3px; background: var(--accent); }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 20px; white-space: nowrap; }
+.badge.safe   { background: rgba(78,204,163,0.15); color: var(--safe); }
+.badge.review { background: rgba(255,193,7,0.15);  color: var(--review); }
+.badge.danger { background: rgba(255,79,79,0.15);  color: var(--risky); }
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.safe .badge-dot { background: var(--safe); } .review .badge-dot { background: var(--review); } .danger .badge-dot { background: var(--risky); }
+.btn-sm { cursor: pointer; border-radius: 6px; font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.6rem; border: 1px solid; transition: all 0.15s; background: transparent; white-space: nowrap; }
+.btn-sm.del { border-color: var(--danger); color: var(--danger); } .btn-sm.del:hover { background: var(--danger); color: #fff; }
+.btn-sm.finder { border-color: var(--border); color: var(--muted); } .btn-sm.finder:hover { border-color: var(--accent); color: var(--accent); }
+input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--accent); }
 
 .sidebar { width: 270px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
 .legend { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); display: flex; gap: 0.75rem; font-size: 0.72rem; flex-wrap: wrap; }
@@ -58,13 +94,11 @@ header h1 { font-size: 1.1rem; font-weight: 700; }
 .spinner-overlay { position: absolute; inset: 0; background: rgba(15,15,19,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; font-size: 0.875rem; color: var(--muted); z-index: 10; }
 .spinner-ring { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
 .tooltip { position: fixed; background: #1e1e2e; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.78rem; pointer-events: none; z-index: 999; max-width: 260px; opacity: 0; transition: opacity 0.1s; }
 .tooltip.show { opacity: 1; }
 .tooltip strong { display: block; margin-bottom: 3px; word-break: break-all; }
 .tooltip .t-size { color: var(--safe); font-weight: 700; }
 .tooltip .t-safe { color: var(--safe); } .tooltip .t-review { color: var(--review); } .tooltip .t-danger { color: var(--risky); }
-
 .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.82rem; opacity: 0; transform: translateY(8px); transition: all 0.25s; z-index: 9999; }
 .toast.show { opacity: 1; transform: none; }
 .toast.success { border-color: var(--safe); color: var(--safe); }
@@ -101,16 +135,48 @@ header h1 { font-size: 1.1rem; font-weight: 700; }
     <option value="999">Unlimited</option>
   </select>
   <button class="btn btn-primary" id="scanBtn" onclick="startScan()">Scan</button>
+  <div class="view-toggle" style="margin-left:auto">
+    <button id="btnGraph" class="active" onclick="setView('graph')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Graph
+    </button>
+    <button id="btnList" onclick="setView('list')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="1" y="12" width="14" height="2" rx="1"/></svg>
+      List
+    </button>
+  </div>
 </div>
 
 <div class="breadcrumb" id="breadcrumb"></div>
 
 <div class="main">
-  <div id="treemap-container">
-    <div class="spinner-overlay" id="spinner" style="display:none">
-      <div class="spinner-ring"></div>Scanning…
+  <div class="view" id="graph-view">
+    <div id="treemap-container">
+      <div class="spinner-overlay" id="spinner" style="display:none">
+        <div class="spinner-ring"></div>Scanning…
+      </div>
+      <svg id="treemap"></svg>
     </div>
-    <svg id="treemap"></svg>
+  </div>
+
+  <div class="view hidden" id="list-view">
+    <div class="list-toolbar" id="listToolbar"><span>Scan to see files</span></div>
+    <div class="list-scroll">
+      <table id="listTable">
+        <thead>
+          <tr>
+            <th style="width:32px"><input type="checkbox" id="chkAll" onchange="toggleAllRows(this.checked)" /></th>
+            <th onclick="sortList('name')">Name</th>
+            <th onclick="sortList('size')" class="sorted">Size ↓</th>
+            <th>Safety</th>
+            <th onclick="sortList('path')">Path</th>
+            <th onclick="sortList('modified')">Modified</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="listBody"></tbody>
+      </table>
+    </div>
   </div>
 
   <div class="sidebar">
@@ -131,7 +197,7 @@ header h1 { font-size: 1.1rem; font-weight: 700; }
       <p id="selectedCount">No files selected</p>
     </div>
     <div class="selected-list" id="selectedList">
-      <div class="empty-sidebar"><span class="icon">☝️</span>Click files in the map to select them</div>
+      <div class="empty-sidebar"><span class="icon">☝️</span>Select files to delete</div>
     </div>
     <div class="sidebar-footer">
       <button class="btn btn-danger" id="deleteBtn" onclick="deleteSelected()" disabled>Delete Selected</button>
@@ -149,9 +215,22 @@ const SAFETY_LABEL = { safe: '✓ Safe to delete', review: '? Review before dele
 
 let fullTree = null, currentNode = null, navStack = [];
 let selected = new Map();
+let currentView = 'graph';
+let flatFiles = [], sortCol = 'size', sortAsc = false, maxFileBytes = 1;
 
 async function init() {
   try { const r = await fetch('/api/home'); const { home } = await r.json(); document.getElementById('scanPath').value = home; } catch {}
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('graph-view').classList.toggle('hidden', v !== 'graph');
+  document.getElementById('list-view').classList.toggle('hidden', v !== 'list');
+  document.getElementById('breadcrumb').style.display = v === 'graph' ? 'flex' : 'none';
+  document.getElementById('btnGraph').classList.toggle('active', v === 'graph');
+  document.getElementById('btnList').classList.toggle('active', v === 'list');
+  if (v === 'list' && fullTree) renderList();
+  if (v === 'graph' && currentNode) renderTreemap(currentNode);
 }
 
 async function startScan() {
@@ -167,114 +246,124 @@ async function startScan() {
     const data = await r.json();
     if (data.error) { showToast(data.error, 'error'); return; }
     fullTree = data; currentNode = fullTree; navStack = [fullTree];
-    renderTreemap(currentNode); updateSafeCta();
+    flatFiles = flattenTree(fullTree);
+    maxFileBytes = flatFiles.reduce((m,f) => Math.max(m,f.size), 1);
+    updateSafeCta();
+    if (currentView === 'graph') renderTreemap(currentNode); else renderList();
   } catch (e) { showToast('Scan failed: ' + e.message, 'error'); }
   finally { document.getElementById('spinner').style.display = 'none'; document.getElementById('scanBtn').disabled = false; }
 }
+
+function flattenTree(node) { const acc=[]; function walk(n){if(n.type==='file')acc.push(n);(n.children||[]).forEach(walk);} walk(node); return acc; }
 
 function renderTreemap(node) {
   currentNode = node; updateBreadcrumb();
   const c = document.getElementById('treemap-container');
   const W = c.clientWidth, H = c.clientHeight;
-  const svg = d3.select('#treemap');
-  svg.selectAll('*').remove();
-  svg.attr('viewBox', `0 0 ${W} ${H}`);
+  const svg = d3.select('#treemap'); svg.selectAll('*').remove(); svg.attr('viewBox',`0 0 ${W} ${H}`);
   if (!node.children?.length) { svg.append('text').attr('x',W/2).attr('y',H/2).attr('text-anchor','middle').attr('fill','var(--muted)').text('No large files here'); return; }
-  const root = d3.hierarchy(node).sum(d => d.type==='file' ? d.size : 0).sort((a,b)=>b.value-a.value);
+  const root = d3.hierarchy(node).sum(d=>d.type==='file'?d.size:0).sort((a,b)=>b.value-a.value);
   d3.treemap().size([W,H]).paddingInner(3).paddingTop(22).paddingOuter(4)(root);
   const cell = svg.selectAll('g.node').data(root.descendants().filter(d=>d.depth>0))
     .enter().append('g').attr('class',d=>'node '+d.data.type).attr('transform',d=>`translate(${d.x0},${d.y0})`);
   cell.append('rect')
     .attr('width',d=>Math.max(0,d.x1-d.x0)).attr('height',d=>Math.max(0,d.y1-d.y0))
-    .attr('fill',d=>d.data.type==='dir'?COLOR.dir:(COLOR[d.data.safety?.level]||COLOR.review))
-    .attr('rx',3).classed('selected',d=>d.data.type==='file'&&selected.has(d.data.path))
-    .on('click',(evt,d)=>{
-      evt.stopPropagation();
-      if(d.data.type==='dir'){navStack=navStack.slice(0,navStack.indexOf(currentNode)+1);navStack.push(d.data);renderTreemap(d.data);}
-      else{toggleSelect(d.data);d3.select(evt.currentTarget).classed('selected',selected.has(d.data.path));}
-    })
+    .attr('fill',d=>d.data.type==='dir'?COLOR.dir:(COLOR[d.data.safety?.level]||COLOR.review)).attr('rx',3)
+    .classed('selected',d=>d.data.type==='file'&&selected.has(d.data.path))
+    .on('click',(evt,d)=>{evt.stopPropagation();if(d.data.type==='dir'){navStack=navStack.slice(0,navStack.indexOf(currentNode)+1);navStack.push(d.data);renderTreemap(d.data);}else{toggleSelect(d.data);d3.select(evt.currentTarget).classed('selected',selected.has(d.data.path));}})
     .on('mousemove',(evt,d)=>showTip(evt,d.data)).on('mouseleave',hideTip);
   cell.filter(d=>(d.x1-d.x0)>50&&(d.y1-d.y0)>20).append('text').attr('x',5)
-    .attr('y',d=>d.data.type==='dir'?14:(d.y1-d.y0)/2+4)
-    .attr('font-size',d=>Math.min(12,Math.max(9,(d.x1-d.x0)/8))).attr('font-weight',d=>d.data.type==='dir'?'700':'400')
+    .attr('y',d=>d.data.type==='dir'?14:(d.y1-d.y0)/2+4).attr('font-size',d=>Math.min(12,Math.max(9,(d.x1-d.x0)/8))).attr('font-weight',d=>d.data.type==='dir'?'700':'400')
     .text(d=>{const w=d.x1-d.x0,n=d.data.name,mc=Math.floor(w/7);return n.length>mc?n.slice(0,mc-1)+'…':n;});
   cell.filter(d=>d.data.type==='file'&&(d.x1-d.x0)>60&&(d.y1-d.y0)>34).append('text')
     .attr('x',5).attr('y',d=>(d.y1-d.y0)/2+16).attr('font-size',9).attr('fill','rgba(255,255,255,0.55)').text(d=>fmtBytes(d.data.size));
 }
 
 function updateBreadcrumb() {
-  const bc = document.getElementById('breadcrumb'); bc.innerHTML='';
-  const stack = navStack.slice(0, navStack.indexOf(currentNode)+1);
+  const bc=document.getElementById('breadcrumb'); bc.innerHTML='';
+  const stack=navStack.slice(0,navStack.indexOf(currentNode)+1);
   stack.forEach((n,i)=>{
     if(i>0){const sep=document.createElement('span');sep.className='sep';sep.textContent=' / ';bc.appendChild(sep);}
-    const s=document.createElement('span'); s.textContent=n.name||n.path;
-    if(i<stack.length-1){s.onclick=()=>{navStack=navStack.slice(0,i+1);renderTreemap(n);};}
-    else{s.style.color='var(--text)';s.style.fontWeight='600';}
+    const s=document.createElement('span');s.textContent=n.name||n.path;
+    if(i<stack.length-1){s.onclick=()=>{navStack=navStack.slice(0,i+1);renderTreemap(n);};}else{s.style.color='var(--text)';s.style.fontWeight='600';}
     bc.appendChild(s);
   });
 }
 
+function sortList(col) {
+  if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=col==='name'||col==='path';}
+  renderList();
+}
+
+function renderList() {
+  const sorted=[...flatFiles].sort((a,b)=>{
+    let av,bv;
+    if(sortCol==='size'){av=a.size;bv=b.size;}else if(sortCol==='name'){av=a.name.toLowerCase();bv=b.name.toLowerCase();}
+    else if(sortCol==='path'){av=a.path.toLowerCase();bv=b.path.toLowerCase();}else if(sortCol==='modified'){av=a.modified;bv=b.modified;}
+    if(av<bv)return sortAsc?-1:1;if(av>bv)return sortAsc?1:-1;return 0;
+  });
+  const total=flatFiles.reduce((s,f)=>s+f.size,0);
+  document.getElementById('listToolbar').innerHTML=`<span>Found <strong>${flatFiles.length}</strong> files</span><span>Total: <strong>${fmtBytes(total)}</strong></span>`;
+  const tbody=document.getElementById('listBody');
+  if(!sorted.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--muted)">No files found</td></tr>`;return;}
+  tbody.innerHTML=sorted.map(f=>{
+    const pct=Math.round((f.size/maxFileBytes)*100);
+    const s=f.safety||{level:'review',reason:'Unknown'};
+    const chk=selected.has(f.path)?'checked':'';
+    const dir=f.path.substring(0,f.path.lastIndexOf('/'));
+    return `<tr class="${selected.has(f.path)?'row-selected':''}" data-path="${esc(f.path)}">
+      <td><input type="checkbox" ${chk} onchange="listToggle('${esc(f.path)}',this.checked)" /></td>
+      <td class="td-name" title="${esc(f.path)}">${esc(f.name)}</td>
+      <td><span style="font-weight:700">${fmtBytes(f.size)}</span><div class="size-bar-wrap"><div class="size-bar" style="width:${pct}%"></div></div></td>
+      <td><span class="badge ${s.level}" title="${esc(s.reason)}"><span class="badge-dot"></span>${s.level==='danger'?'Risky':s.level==='safe'?'Safe':'Review'}</span></td>
+      <td class="td-path" onclick="navigateTo('${esc(dir)}')" title="${esc(f.path)}">${esc(f.path)}</td>
+      <td>${f.modified?new Date(f.modified).toLocaleDateString():'—'}</td>
+      <td class="td-actions"><button class="btn-sm finder" onclick="revealInFinder('${esc(f.path)}')">🔍</button><button class="btn-sm del" onclick="deleteSingle('${esc(f.path)}')">Delete</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function listToggle(p,checked){const f=flatFiles.find(x=>x.path===p);if(!f)return;if(checked)selected.set(p,f);else selected.delete(p);const row=document.querySelector(`tr[data-path="${esc(p)}"]`);if(row)row.classList.toggle('row-selected',checked);updateSidebar();}
+function toggleAllRows(checked){flatFiles.forEach(f=>{if(checked)selected.set(f.path,f);else selected.delete(f.path);});updateSidebar();renderList();}
+function navigateTo(dir){setView('graph');const target=findNodeByPath(fullTree,dir);if(target){navStack.push(target);renderTreemap(target);}}
+function findNodeByPath(node,p){if(node.path===p)return node;for(const c of(node.children||[])){const r=findNodeByPath(c,p);if(r)return r;}return null;}
+
 function toggleSelect(data){if(selected.has(data.path))selected.delete(data.path);else selected.set(data.path,data);updateSidebar();}
-
-function clearSelection(){selected.clear();updateSidebar();d3.selectAll('.node rect').classed('selected',false);}
-
+function clearSelection(){selected.clear();updateSidebar();d3.selectAll('.node rect').classed('selected',false);document.querySelectorAll('tbody tr.row-selected').forEach(r=>r.classList.remove('row-selected'));document.querySelectorAll('tbody input[type=checkbox]').forEach(c=>c.checked=false);}
 function updateSidebar(){
   const list=document.getElementById('selectedList'),countEl=document.getElementById('selectedCount'),sizeEl=document.getElementById('selectedSize'),btn=document.getElementById('deleteBtn');
-  if(!selected.size){list.innerHTML='<div class="empty-sidebar"><span class="icon">☝️</span>Click files in the map to select them</div>';countEl.textContent='No files selected';sizeEl.textContent='—';btn.disabled=true;return;}
+  if(!selected.size){list.innerHTML='<div class="empty-sidebar"><span class="icon">☝️</span>Select files to delete</div>';countEl.textContent='No files selected';sizeEl.textContent='—';btn.disabled=true;return;}
   const total=[...selected.values()].reduce((s,f)=>s+f.size,0);
   countEl.textContent=`${selected.size} file${selected.size>1?'s':''} selected`;sizeEl.textContent=fmtBytes(total);btn.disabled=false;
   list.innerHTML=[...selected.values()].map(f=>`<div class="sel-item"><span class="sel-name" title="${esc(f.path)}">${esc(f.name)}</span><span class="sel-size">${fmtBytes(f.size)}</span><button class="sel-rm" onclick="removeFromSelection('${esc(f.path)}')">×</button></div>`).join('');
 }
-
-function removeFromSelection(p){selected.delete(p);d3.selectAll('.node rect').classed('selected',d=>d.data&&selected.has(d.data.path));updateSidebar();}
+function removeFromSelection(p){selected.delete(p);d3.selectAll('.node rect').classed('selected',d=>d.data&&selected.has(d.data.path));const row=document.querySelector(`tr[data-path="${esc(p)}"]`);if(row){row.classList.remove('row-selected');const chk=row.querySelector('input');if(chk)chk.checked=false;}updateSidebar();}
 
 function collectSafeFiles(node){const acc=[];function walk(n){if(n.type==='file'&&n.safety?.level==='safe')acc.push(n);(n.children||[]).forEach(walk);}walk(node);return acc;}
+function updateSafeCta(){if(!fullTree)return;const safe=collectSafeFiles(fullTree);const cta=document.getElementById('safeCta');if(!safe.length){cta.style.display='none';return;}const total=safe.reduce((s,f)=>s+f.size,0);document.getElementById('safeSize').textContent=fmtBytes(total);document.getElementById('safeDesc').textContent=`${safe.length} safe file${safe.length>1?'s':''} ready to clean`;cta.style.display='block';}
+async function deleteAllSafe(){if(!fullTree)return;const safe=collectSafeFiles(fullTree);if(!safe.length)return;const total=safe.reduce((s,f)=>s+f.size,0);if(!confirm(`Delete ${safe.length} safe file(s) and free ${fmtBytes(total)}?\nIncludes: caches, logs, temp files, downloads.\nThis cannot be undone.`))return;await doDelete(safe.map(f=>f.path));updateSafeCta();}
 
-function updateSafeCta(){
-  if(!fullTree)return;const safe=collectSafeFiles(fullTree);const cta=document.getElementById('safeCta');
-  if(!safe.length){cta.style.display='none';return;}
-  const total=safe.reduce((s,f)=>s+f.size,0);
-  document.getElementById('safeSize').textContent=fmtBytes(total);
-  document.getElementById('safeDesc').textContent=`${safe.length} safe file${safe.length>1?'s':''} ready to clean`;cta.style.display='block';
-}
-
-async function deleteAllSafe(){
-  if(!fullTree)return;const safe=collectSafeFiles(fullTree);if(!safe.length)return;
-  const total=safe.reduce((s,f)=>s+f.size,0);
-  if(!confirm(`Delete ${safe.length} safe file(s) and free ${fmtBytes(total)}?\nIncludes: caches, logs, temp files, downloads.\nThis cannot be undone.`))return;
-  await doDelete(safe.map(f=>f.path));updateSafeCta();
-}
-
-async function deleteSelected(){
-  if(!selected.size)return;const paths=[...selected.keys()];
-  if(!confirm(`Delete ${paths.length} file(s) and free ${fmtBytes([...selected.values()].reduce((s,f)=>s+f.size,0))}?\nThis cannot be undone.`))return;
-  await doDelete(paths);clearSelection();updateSafeCta();
-}
-
+async function deleteSelected(){if(!selected.size)return;const paths=[...selected.keys()];if(!confirm(`Delete ${paths.length} file(s) and free ${fmtBytes([...selected.values()].reduce((s,f)=>s+f.size,0))}?\nThis cannot be undone.`))return;await doDelete(paths);clearSelection();updateSafeCta();}
+async function deleteSingle(p){const f=flatFiles.find(x=>x.path===p);if(!confirm(`Delete this file?\n\n${p}\n${f?fmtBytes(f.size):''}`))return;await doDelete([p]);updateSafeCta();}
 async function doDelete(paths){
   let deleted=0;
   for(const fp of paths){try{const r=await fetch('/api/delete',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({filePath:fp})});const d=await r.json();if(d.success){deleted++;pruneFromTree(fullTree,fp);selected.delete(fp);}}catch{}}
-  showToast(`Deleted ${deleted} file${deleted>1?'s':''}`, 'success');renderTreemap(currentNode);updateSidebar();
+  flatFiles=flattenTree(fullTree);maxFileBytes=flatFiles.reduce((m,f)=>Math.max(m,f.size),1);
+  showToast(`Deleted ${deleted} file${deleted>1?'s':''}`, 'success');
+  if(currentView==='graph')renderTreemap(currentNode);else renderList();updateSidebar();
 }
+function pruneFromTree(node,fp){if(!node.children)return;const idx=node.children.findIndex(c=>c.path===fp);if(idx!==-1){node.size-=node.children[idx].size;node.children.splice(idx,1);return;}for(const child of node.children){if(fp.startsWith(child.path+'/')){const b=child.size;pruneFromTree(child,fp);node.size-=(b-child.size);}}}
 
-function pruneFromTree(node,fp){
-  if(!node.children)return;const idx=node.children.findIndex(c=>c.path===fp);
-  if(idx!==-1){node.size-=node.children[idx].size;node.children.splice(idx,1);return;}
-  for(const child of node.children){if(fp.startsWith(child.path+'/')){const b=child.size;pruneFromTree(child,fp);node.size-=(b-child.size);}}
-}
+async function revealInFinder(fp){try{await fetch('/api/reveal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filePath:fp})});}catch{}}
 
-function showTip(evt,data){
-  const t=document.getElementById('tooltip'),s=data.safety;
-  t.innerHTML=`<strong>${esc(data.name)}</strong><span class="t-size">${fmtBytes(data.size)}</span>${s?`<div class="t-${s.level}">${SAFETY_LABEL[s.level]}</div><div style="color:var(--muted);font-size:0.7rem">${esc(s.reason)}</div>`:'<div style="color:var(--muted)">Folder — click to drill in</div>'}${data.modified?`<div style="color:var(--muted);margin-top:3px">${new Date(data.modified).toLocaleDateString()}</div>`:''}`;
-  t.style.left=(evt.clientX+14)+'px';t.style.top=(evt.clientY-10)+'px';t.classList.add('show');
-}
+function showTip(evt,data){const t=document.getElementById('tooltip'),s=data.safety;t.innerHTML=`<strong>${esc(data.name)}</strong><span class="t-size">${fmtBytes(data.size)}</span>${s?`<div class="t-${s.level}">${SAFETY_LABEL[s.level]}</div><div style="color:var(--muted);font-size:0.7rem">${esc(s.reason)}</div>`:'<div style="color:var(--muted)">Folder — click to drill in</div>'}${data.modified?`<div style="color:var(--muted);margin-top:3px">${new Date(data.modified).toLocaleDateString()}</div>`:''}`;t.style.left=(evt.clientX+14)+'px';t.style.top=(evt.clientY-10)+'px';t.classList.add('show');}
 function hideTip(){document.getElementById('tooltip').classList.remove('show');}
-
 function fmtBytes(b){const u=['B','KB','MB','GB','TB'];let i=0,s=b;while(s>=1024&&i<u.length-1){s/=1024;i++;}return `${s.toFixed(i>0?1:0)} ${u[i]}`;}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function showToast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>t.classList.remove('show'),3000);}
 
-window.addEventListener('resize',()=>{if(currentNode)renderTreemap(currentNode);});
+window.addEventListener('resize',()=>{if(currentView==='graph'&&currentNode)renderTreemap(currentNode);});
+document.getElementById('breadcrumb').style.display='flex';
 init();
 </script>
 </body>
