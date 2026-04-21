@@ -371,6 +371,13 @@ function sortList(col) {
 }
 
 // Walk tree, emit rows: { type:'dir'|'file', depth, data }
+function sumRowFiles(rows) {
+  return rows.reduce((t, r) => t + (r.type === 'file' ? r.data.size : sumRowFiles(r.childRows || [])), 0);
+}
+function countRowFiles(rows) {
+  return rows.reduce((t, r) => t + (r.type === 'file' ? 1 : countRowFiles(r.childRows || [])), 0);
+}
+
 function buildRows(node, depth, filter) {
   const rows = [];
   if (!node.children?.length) return rows;
@@ -398,8 +405,8 @@ function buildRows(node, depth, filter) {
     const childRows = buildRows(dir, depth + 1, filter);
     if (childRows.length === 0) return; // skip empty dirs
     // compute visible size (files matching filter)
-    const visSize = childRows.filter(r => r.type === 'file').reduce((s,r) => s + r.data.size, 0);
-    const visCount = childRows.filter(r => r.type === 'file').length;
+    const visSize = sumRowFiles(childRows);
+    const visCount = countRowFiles(childRows);
     rows.push({ type: 'dir', depth, data: dir, childRows, visSize, visCount });
   });
 
