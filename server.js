@@ -23,6 +23,20 @@ function fmtSize(bytes) {
   return { value: parseFloat(s.toFixed(2)), unit: u[i], bytes };
 }
 
+function classifyFile(filePath) {
+  const l = filePath.toLowerCase();
+  const ext = path.extname(l);
+  if (/^\/system\/|^\/usr\/|^\/bin\/|^\/sbin\/|\/library\/preferences\/|\/library\/keychains\/|\.app\/|\.framework\//.test(l)) return { level: 'danger', reason: 'System file' };
+  if (['.dylib','.so','.a','.kext','.plist'].includes(ext)) return { level: 'danger', reason: 'System binary' };
+  if (/\/library\/caches\/|\/library\/logs\/|\/tmp\/|\/private\/tmp\/|\/downloads\//.test(l)) return { level: 'safe', reason: 'Cache / temp / download' };
+  if (['.log','.tmp','.temp','.cache','.bak','.old'].includes(ext)) return { level: 'safe', reason: 'Temp file' };
+  if (['.dmg','.pkg'].includes(ext)) return { level: l.includes('/downloads/') ? 'safe' : 'review', reason: 'Installer' };
+  if (['.zip','.tar','.gz','.bz2','.rar','.7z'].includes(ext)) return { level: l.includes('/downloads/') ? 'safe' : 'review', reason: 'Archive' };
+  if (/\/documents\/|\/desktop\/|\/movies\/|\/music\/|\/pictures\//.test(l)) return { level: 'review', reason: 'Personal file' };
+  if (['.mp4','.mov','.mkv','.mp3','.flac','.jpg','.jpeg','.png','.pdf','.docx','.xlsx'].includes(ext)) return { level: 'review', reason: 'Media / document' };
+  return { level: 'review', reason: 'Verify before deleting' };
+}
+
 async function scanDirectory(dirPath, minBytes, maxDepth, depth = 0) {
   const results = [];
   let entries;
@@ -34,7 +48,7 @@ async function scanDirectory(dirPath, minBytes, maxDepth, depth = 0) {
       try {
         const st = fs.statSync(fp);
         if (st.size >= minBytes) {
-          results.push({ name: e.name, path: fp, size: fmtSize(st.size), modified: st.mtime.toISOString(), type: 'file' });
+          results.push({ name: e.name, path: fp, size: fmtSize(st.size), modified: st.mtime.toISOString(), type: 'file', safety: classifyFile(fp) });
         }
       } catch {}
     } else if (e.isDirectory() && depth < maxDepth && !shouldSkip(fp)) {
