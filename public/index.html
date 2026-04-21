@@ -45,7 +45,7 @@ header h1 { font-size: 1.1rem; font-weight: 700; }
 
 /* ── list toolbar ── */
 .list-toolbar {
-  padding: 0.55rem 1rem;
+  padding: 0.5rem 1rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 0.75rem;
@@ -53,7 +53,10 @@ header h1 { font-size: 1.1rem; font-weight: 700; }
   flex-shrink: 0; flex-wrap: wrap;
 }
 .list-toolbar strong { color: var(--text); }
-.filter-pills { display: flex; gap: 0.35rem; margin-left: auto; }
+.toolbar-row { display: flex; align-items: center; gap: 0.75rem; width: 100%; flex-wrap: wrap; }
+.toolbar-row + .toolbar-row { border-top: 1px solid var(--border); padding-top: 0.45rem; margin-top: 0.1rem; }
+.filter-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0; }
+.filter-pills { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .pill {
   cursor: pointer; border: 1px solid var(--border); border-radius: 20px;
   padding: 0.2rem 0.65rem; font-size: 0.72rem; font-weight: 600;
@@ -280,7 +283,16 @@ let currentView = 'graph';
 let flatFiles = [], maxFileBytes = 1;
 let sortCol = 'size', sortAsc = false;
 let safetyFilter = 'all';
+let sizeFilter   = 'all'; // 'all' | '100' | '500' | '1024' | '5120' (MB)
 let collapsed = new Set(); // dir paths that are collapsed
+
+const SIZE_OPTS = [
+  { label: 'Any size', value: 'all'  },
+  { label: '>100 MB',  value: '100'  },
+  { label: '>500 MB',  value: '500'  },
+  { label: '>1 GB',    value: '1024' },
+  { label: '>5 GB',    value: '5120' },
+];
 
 // ── init ──────────────────────────────────────────────────────────────────────
 async function init() {
@@ -342,8 +354,14 @@ function setSafetyFilter(level) {
 }
 
 function filePassesFilter(f) {
-  if (safetyFilter === 'all') return true;
-  return f.safety?.level === safetyFilter;
+  if (safetyFilter !== 'all' && f.safety?.level !== safetyFilter) return false;
+  if (sizeFilter !== 'all' && f.size < parseInt(sizeFilter) * 1024 * 1024) return false;
+  return true;
+}
+
+function setSizeFilter(val) {
+  sizeFilter = val;
+  if (fullTree) renderList();
 }
 
 // ── nested list view ──────────────────────────────────────────────────────────
@@ -392,23 +410,56 @@ function renderList() {
   if (!fullTree) return;
 
   const visFiles = flatFiles.filter(filePassesFilter);
-  const total = visFiles.reduce((s,f) => s + f.size, 0);
+  const total    = visFiles.reduce((s,f) => s + f.size, 0);
+  const useFlatMode = sizeFilter !== 'all';
+
+  const safetyPills = [
+    ['all','active-all','All'], ['safe','active-safe','✓ Safe'],
+    ['review','active-review','? Review'], ['danger','active-danger','✕ Risky'],
+  ].map(([v,cls,lbl]) => `<button class="pill ${safetyFilter===v?cls:''}" onclick="setSafetyFilter('${v}')">${lbl}</button>`).join('');
+
+  const sizePills = SIZE_OPTS.map(o =>
+    `<button class="pill ${sizeFilter===o.value?'active-all':''}" onclick="setSizeFilter('${o.value}')">${o.label}</button>`
+  ).join('');
+
   document.getElementById('listToolbar').innerHTML = `
-    <span>Showing <strong>${visFiles.length}</strong> files · <strong>${fmtBytes(total)}</strong></span>
-    <div class="filter-pills" id="filterPills">
-      <button class="pill ${safetyFilter==='all'?'active-all':''}" onclick="setSafetyFilter('all')">All</button>
-      <button class="pill ${safetyFilter==='safe'?'active-safe':''}" onclick="setSafetyFilter('safe')">✓ Safe</button>
-      <button class="pill ${safetyFilter==='review'?'active-review':''}" onclick="setSafetyFilter('review')">? Review</button>
-      <button class="pill ${safetyFilter==='danger'?'active-danger':''}" onclick="setSafetyFilter('danger')">✕ Risky</button>
+    <div class="toolbar-row">
+      <span>Showing <strong>${visFiles.length}</strong> files · <strong>${fmtBytes(total)}</strong></span>
+      ${useFlatMode ? '<span style="color:var(--review);font-size:0.72rem">flat view</span>' : ''}
+    </div>
+    <div class="toolbar-row">
+      <span class="filter-label">Safety</span>
+      <div class="filter-pills">${safetyPills}</div>
+    </div>
+    <div class="toolbar-row">
+      <span class="filter-label">Size</span>
+      <div class="filter-pills">${sizePills}</div>
     </div>`;
 
-  const rows = buildRows(fullTree, 0, safetyFilter);
   const tbody = document.getElementById('listBody');
-  if (!rows.length) {
+  if (!visFiles.length) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--muted)">No files match this filter</td></tr>`;
     return;
   }
-  tbody.innerHTML = renderRows(rows);
+
+  if (useFlatMode) {
+    // flat sorted list — no nesting
+    const sorted = [...visFiles].sort((a,b) => {
+      let av,bv;
+      if (sortCol==='size')    { av=a.size; bv=b.size; }
+      else if (sortCol==='name')    { av=a.name.toLowerCase(); bv=b.name.toLowerCase(); }
+      else if (sortCol==='modified'){ av=a.modified; bv=b.modified; }
+      if (av<bv) return sortAsc?-1:1; if (av>bv) return sortAsc?1:-1; return 0;
+    });
+    tbody.innerHTML = sorted.map(f => renderFileRow({ depth: 0, data: f })).join('');
+  } else {
+    const rows = buildRows(fullTree, 0, safetyFilter);
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--muted)">No files match this filter</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = renderRows(rows);
+  }
 }
 
 function renderRows(rows) {
