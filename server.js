@@ -59,6 +59,38 @@ async function scanDirectory(dirPath, minBytes, maxDepth, depth = 0) {
   return results;
 }
 
+function buildTree(dirPath, minBytes, maxDepth, depth = 0) {
+  const node = { name: path.basename(dirPath) || dirPath, path: dirPath, type: 'dir', size: 0, children: [] };
+  let entries;
+  try { entries = fs.readdirSync(dirPath, { withFileTypes: true }); } catch { return node; }
+
+  for (const e of entries) {
+    const fp = path.join(dirPath, e.name);
+    if (e.isFile()) {
+      try {
+        const st = fs.statSync(fp);
+        if (st.size >= minBytes) {
+          node.children.push({ name: e.name, path: fp, type: 'file', size: st.size, modified: st.mtime.toISOString(), safety: classifyFile(fp) });
+          node.size += st.size;
+        }
+      } catch {}
+    } else if (e.isDirectory() && depth < maxDepth && !shouldSkip(fp)) {
+      const child = buildTree(fp, minBytes, maxDepth, depth + 1);
+      if (child.size > 0) { node.children.push(child); node.size += child.size; }
+    }
+  }
+  return node;
+}
+
+app.get('/api/tree', (req, res) => {
+  const scanPath = path.resolve(req.query.path || os.homedir());
+  const minBytes = (parseFloat(req.query.minMB) || 10) * 1024 * 1024;
+  const maxDepth = parseInt(req.query.maxDepth) || 6;
+  if (!fs.existsSync(scanPath)) return res.status(400).json({ error: 'Path does not exist' });
+  try { res.json(buildTree(scanPath, minBytes, maxDepth)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/home', (_, res) => res.json({ home: os.homedir() }));
 
 app.get('/api/scan', async (req, res) => {
