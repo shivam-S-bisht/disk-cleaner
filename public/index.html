@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Disk Cleaner</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f0f13; --surface: #1a1a24; --border: #2a2a38;
+  --accent: #6c63ff; --danger: #ff4f4f; --text: #e8e8f0; --muted: #7a7a9a;
+  --safe: #4ecca3; --review: #ffc107; --risky: #ff4f4f;
+}
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+header h1 { font-size: 1.1rem; font-weight: 700; }
+
+.controls { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.75rem 1.5rem; display: flex; gap: 0.75rem; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+.controls input[type=text] { flex: 1; min-width: 200px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0.5rem 0.85rem; font-size: 0.875rem; outline: none; }
+.controls input:focus { border-color: var(--accent); }
+.controls select { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0.5rem 0.75rem; font-size: 0.875rem; outline: none; cursor: pointer; }
+.btn { cursor: pointer; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; padding: 0.5rem 1.1rem; transition: opacity 0.15s; white-space: nowrap; }
+.btn:hover { opacity: 0.85; } .btn:active { transform: scale(0.97); } .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-safe    { background: var(--safe);   color: #0f0f13; }
+.btn-danger  { background: var(--danger); color: #fff; }
+
+.breadcrumb { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.5rem 1.5rem; display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; color: var(--muted); flex-shrink: 0; min-height: 34px; }
+.breadcrumb span { cursor: pointer; } .breadcrumb span:hover { color: var(--accent); }
+.breadcrumb .sep { color: var(--border); cursor: default; }
+
+.main { display: flex; flex: 1; overflow: hidden; }
+#treemap-container { flex: 1; position: relative; overflow: hidden; }
+#treemap-container svg { width: 100%; height: 100%; display: block; }
+
+.sidebar { width: 270px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.legend { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); display: flex; gap: 0.75rem; font-size: 0.72rem; flex-wrap: wrap; }
+.leg { display: flex; align-items: center; gap: 4px; }
+.leg-dot { width: 8px; height: 8px; border-radius: 2px; }
+.safe-cta { margin: 0.75rem; background: rgba(78,204,163,0.1); border: 1px solid rgba(78,204,163,0.3); border-radius: 10px; padding: 0.75rem; font-size: 0.8rem; display: none; }
+.safe-cta p { color: var(--muted); margin-top: 2px; font-size: 0.72rem; }
+.savings { font-size: 1.25rem; font-weight: 800; color: var(--safe); margin: 0.2rem 0; }
+.sidebar-header { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); }
+.sidebar-header h3 { font-size: 0.875rem; font-weight: 700; margin-bottom: 0.2rem; }
+.sidebar-header p { font-size: 0.72rem; color: var(--muted); }
+.selected-list { flex: 1; overflow-y: auto; padding: 0.4rem; }
+.sel-item { display: flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.5rem; border-radius: 6px; font-size: 0.72rem; }
+.sel-item:hover { background: rgba(255,255,255,0.04); }
+.sel-item .sel-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-item .sel-size { color: var(--muted); flex-shrink: 0; }
+.sel-item .sel-rm { cursor: pointer; color: var(--danger); background: none; border: none; padding: 0; font-size: 0.9rem; }
+.sidebar-footer { padding: 0.85rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem; }
+.empty-sidebar { padding: 2rem 1rem; text-align: center; color: var(--muted); font-size: 0.78rem; }
+.empty-sidebar .icon { font-size: 1.8rem; display: block; margin-bottom: 0.5rem; }
+
+.spinner-overlay { position: absolute; inset: 0; background: rgba(15,15,19,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; font-size: 0.875rem; color: var(--muted); z-index: 10; }
+.spinner-ring { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.tooltip { position: fixed; background: #1e1e2e; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.78rem; pointer-events: none; z-index: 999; max-width: 260px; opacity: 0; transition: opacity 0.1s; }
+.tooltip.show { opacity: 1; }
+.tooltip strong { display: block; margin-bottom: 3px; word-break: break-all; }
+.tooltip .t-size { color: var(--safe); font-weight: 700; }
+.tooltip .t-safe { color: var(--safe); } .tooltip .t-review { color: var(--review); } .tooltip .t-danger { color: var(--risky); }
+
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.82rem; opacity: 0; transform: translateY(8px); transition: all 0.25s; z-index: 9999; }
+.toast.show { opacity: 1; transform: none; }
+.toast.success { border-color: var(--safe); color: var(--safe); }
+.toast.error   { border-color: var(--danger); color: var(--danger); }
+
+.node rect { stroke: var(--bg); stroke-width: 1.5px; cursor: pointer; transition: opacity 0.15s; }
+.node rect:hover { opacity: 0.8; }
+.node rect.selected { stroke: #fff; stroke-width: 2.5px; }
+.node text { pointer-events: none; font-family: -apple-system, sans-serif; fill: rgba(255,255,255,0.85); }
+.node.dir > rect { cursor: zoom-in; }
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:1.3rem">🗂️</span>
+  <h1>Disk Cleaner</h1>
+</header>
+
+<div class="controls">
+  <input type="text" id="scanPath" placeholder="/Users/you" />
+  <select id="minMB">
+    <option value="1">1 MB+</option>
+    <option value="10" selected>10 MB+</option>
+    <option value="50">50 MB+</option>
+    <option value="100">100 MB+</option>
+    <option value="250">250 MB+</option>
+    <option value="500">500 MB+</option>
+  </select>
+  <select id="maxDepth">
+    <option value="3">3 levels</option>
+    <option value="5" selected>5 levels</option>
+    <option value="8">8 levels</option>
+    <option value="999">Unlimited</option>
+  </select>
+  <button class="btn btn-primary" id="scanBtn" onclick="startScan()">Scan</button>
+</div>
+
+<div class="breadcrumb" id="breadcrumb"></div>
+
+<div class="main">
+  <div id="treemap-container">
+    <div class="spinner-overlay" id="spinner" style="display:none">
+      <div class="spinner-ring"></div>Scanning…
+    </div>
+    <svg id="treemap"></svg>
+  </div>
+
+  <div class="sidebar">
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:var(--safe)"></div>Safe</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--review)"></div>Review</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--risky)"></div>Risky</div>
+      <div class="leg"><div class="leg-dot" style="background:#2e2e44"></div>Folder</div>
+    </div>
+    <div class="safe-cta" id="safeCta">
+      <div class="savings" id="safeSize">—</div>
+      <p id="safeDesc"></p>
+      <button class="btn btn-safe" style="width:100%;margin-top:0.6rem;font-size:0.8rem" onclick="deleteAllSafe()">Delete All Safe Files</button>
+    </div>
+    <div class="sidebar-header">
+      <h3>Selected</h3>
+      <div class="savings" id="selectedSize">—</div>
+      <p id="selectedCount">No files selected</p>
+    </div>
+    <div class="selected-list" id="selectedList">
+      <div class="empty-sidebar"><span class="icon">☝️</span>Click files in the map to select them</div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-danger" id="deleteBtn" onclick="deleteSelected()" disabled>Delete Selected</button>
+      <button class="btn" style="background:var(--border);color:var(--text)" onclick="clearSelection()">Clear</button>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const COLOR = { safe: '#4ecca3', review: '#ffc107', danger: '#ff4f4f', dir: '#2e2e44' };
+const SAFETY_LABEL = { safe: '✓ Safe to delete', review: '? Review before deleting', danger: '✕ Risky — do not delete' };
+
+let fullTree = null, currentNode = null, navStack = [];
+let selected = new Map();
+
+async function init() {
+  try { const r = await fetch('/api/home'); const { home } = await r.json(); document.getElementById('scanPath').value = home; } catch {}
+}
+
+async function startScan() {
+  const scanPath = document.getElementById('scanPath').value.trim();
+  if (!scanPath) { showToast('Enter a folder path', 'error'); return; }
+  const minMB = document.getElementById('minMB').value;
+  const maxDepth = document.getElementById('maxDepth').value;
+  document.getElementById('spinner').style.display = 'flex';
+  document.getElementById('scanBtn').disabled = true;
+  selected.clear(); navStack = []; updateSidebar();
+  try {
+    const r = await fetch(`/api/tree?path=${encodeURIComponent(scanPath)}&minMB=${minMB}&maxDepth=${maxDepth}`);
+    const data = await r.json();
+    if (data.error) { showToast(data.error, 'error'); return; }
+    fullTree = data; currentNode = fullTree; navStack = [fullTree];
+    renderTreemap(currentNode); updateSafeCta();
+  } catch (e) { showToast('Scan failed: ' + e.message, 'error'); }
+  finally { document.getElementById('spinner').style.display = 'none'; document.getElementById('scanBtn').disabled = false; }
+}
+
+function renderTreemap(node) {
+  currentNode = node; updateBreadcrumb();
+  const c = document.getElementById('treemap-container');
+  const W = c.clientWidth, H = c.clientHeight;
+  const svg = d3.select('#treemap');
+  svg.selectAll('*').remove();
+  svg.attr('viewBox', `0 0 ${W} ${H}`);
+  if (!node.children?.length) { svg.append('text').attr('x',W/2).attr('y',H/2).attr('text-anchor','middle').attr('fill','var(--muted)').text('No large files here'); return; }
+  const root = d3.hierarchy(node).sum(d => d.type==='file' ? d.size : 0).sort((a,b)=>b.value-a.value);
+  d3.treemap().size([W,H]).paddingInner(3).paddingTop(22).paddingOuter(4)(root);
+  const cell = svg.selectAll('g.node').data(root.descendants().filter(d=>d.depth>0))
+    .enter().append('g').attr('class',d=>'node '+d.data.type).attr('transform',d=>`translate(${d.x0},${d.y0})`);
+  cell.append('rect')
+    .attr('width',d=>Math.max(0,d.x1-d.x0)).attr('height',d=>Math.max(0,d.y1-d.y0))
+    .attr('fill',d=>d.data.type==='dir'?COLOR.dir:(COLOR[d.data.safety?.level]||COLOR.review))
+    .attr('rx',3).classed('selected',d=>d.data.type==='file'&&selected.has(d.data.path))
+    .on('click',(evt,d)=>{
+      evt.stopPropagation();
+      if(d.data.type==='dir'){navStack=navStack.slice(0,navStack.indexOf(currentNode)+1);navStack.push(d.data);renderTreemap(d.data);}
+      else{toggleSelect(d.data);d3.select(evt.currentTarget).classed('selected',selected.has(d.data.path));}
+    })
+    .on('mousemove',(evt,d)=>showTip(evt,d.data)).on('mouseleave',hideTip);
+  cell.filter(d=>(d.x1-d.x0)>50&&(d.y1-d.y0)>20).append('text').attr('x',5)
+    .attr('y',d=>d.data.type==='dir'?14:(d.y1-d.y0)/2+4)
+    .attr('font-size',d=>Math.min(12,Math.max(9,(d.x1-d.x0)/8))).attr('font-weight',d=>d.data.type==='dir'?'700':'400')
+    .text(d=>{const w=d.x1-d.x0,n=d.data.name,mc=Math.floor(w/7);return n.length>mc?n.slice(0,mc-1)+'…':n;});
+  cell.filter(d=>d.data.type==='file'&&(d.x1-d.x0)>60&&(d.y1-d.y0)>34).append('text')
+    .attr('x',5).attr('y',d=>(d.y1-d.y0)/2+16).attr('font-size',9).attr('fill','rgba(255,255,255,0.55)').text(d=>fmtBytes(d.data.size));
+}
+
+function updateBreadcrumb() {
+  const bc = document.getElementById('breadcrumb'); bc.innerHTML='';
+  const stack = navStack.slice(0, navStack.indexOf(currentNode)+1);
+  stack.forEach((n,i)=>{
+    if(i>0){const sep=document.createElement('span');sep.className='sep';sep.textContent=' / ';bc.appendChild(sep);}
+    const s=document.createElement('span'); s.textContent=n.name||n.path;
+    if(i<stack.length-1){s.onclick=()=>{navStack=navStack.slice(0,i+1);renderTreemap(n);};}
+    else{s.style.color='var(--text)';s.style.fontWeight='600';}
+    bc.appendChild(s);
+  });
+}
+
+function toggleSelect(data){if(selected.has(data.path))selected.delete(data.path);else selected.set(data.path,data);updateSidebar();}
+
+function clearSelection(){selected.clear();updateSidebar();d3.selectAll('.node rect').classed('selected',false);}
+
+function updateSidebar(){
+  const list=document.getElementById('selectedList'),countEl=document.getElementById('selectedCount'),sizeEl=document.getElementById('selectedSize'),btn=document.getElementById('deleteBtn');
+  if(!selected.size){list.innerHTML='<div class="empty-sidebar"><span class="icon">☝️</span>Click files in the map to select them</div>';countEl.textContent='No files selected';sizeEl.textContent='—';btn.disabled=true;return;}
+  const total=[...selected.values()].reduce((s,f)=>s+f.size,0);
+  countEl.textContent=`${selected.size} file${selected.size>1?'s':''} selected`;sizeEl.textContent=fmtBytes(total);btn.disabled=false;
+  list.innerHTML=[...selected.values()].map(f=>`<div class="sel-item"><span class="sel-name" title="${esc(f.path)}">${esc(f.name)}</span><span class="sel-size">${fmtBytes(f.size)}</span><button class="sel-rm" onclick="removeFromSelection('${esc(f.path)}')">×</button></div>`).join('');
+}
+
+function removeFromSelection(p){selected.delete(p);d3.selectAll('.node rect').classed('selected',d=>d.data&&selected.has(d.data.path));updateSidebar();}
+
+function collectSafeFiles(node){const acc=[];function walk(n){if(n.type==='file'&&n.safety?.level==='safe')acc.push(n);(n.children||[]).forEach(walk);}walk(node);return acc;}
+
+function updateSafeCta(){
+  if(!fullTree)return;const safe=collectSafeFiles(fullTree);const cta=document.getElementById('safeCta');
+  if(!safe.length){cta.style.display='none';return;}
+  const total=safe.reduce((s,f)=>s+f.size,0);
+  document.getElementById('safeSize').textContent=fmtBytes(total);
+  document.getElementById('safeDesc').textContent=`${safe.length} safe file${safe.length>1?'s':''} ready to clean`;cta.style.display='block';
+}
+
+async function deleteAllSafe(){
+  if(!fullTree)return;const safe=collectSafeFiles(fullTree);if(!safe.length)return;
+  const total=safe.reduce((s,f)=>s+f.size,0);
+  if(!confirm(`Delete ${safe.length} safe file(s) and free ${fmtBytes(total)}?\nIncludes: caches, logs, temp files, downloads.\nThis cannot be undone.`))return;
+  await doDelete(safe.map(f=>f.path));updateSafeCta();
+}
+
+async function deleteSelected(){
+  if(!selected.size)return;const paths=[...selected.keys()];
+  if(!confirm(`Delete ${paths.length} file(s) and free ${fmtBytes([...selected.values()].reduce((s,f)=>s+f.size,0))}?\nThis cannot be undone.`))return;
+  await doDelete(paths);clearSelection();updateSafeCta();
+}
+
+async function doDelete(paths){
+  let deleted=0;
+  for(const fp of paths){try{const r=await fetch('/api/delete',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({filePath:fp})});const d=await r.json();if(d.success){deleted++;pruneFromTree(fullTree,fp);selected.delete(fp);}}catch{}}
+  showToast(`Deleted ${deleted} file${deleted>1?'s':''}`, 'success');renderTreemap(currentNode);updateSidebar();
+}
+
+function pruneFromTree(node,fp){
+  if(!node.children)return;const idx=node.children.findIndex(c=>c.path===fp);
+  if(idx!==-1){node.size-=node.children[idx].size;node.children.splice(idx,1);return;}
+  for(const child of node.children){if(fp.startsWith(child.path+'/')){const b=child.size;pruneFromTree(child,fp);node.size-=(b-child.size);}}
+}
+
+function showTip(evt,data){
+  const t=document.getElementById('tooltip'),s=data.safety;
+  t.innerHTML=`<strong>${esc(data.name)}</strong><span class="t-size">${fmtBytes(data.size)}</span>${s?`<div class="t-${s.level}">${SAFETY_LABEL[s.level]}</div><div style="color:var(--muted);font-size:0.7rem">${esc(s.reason)}</div>`:'<div style="color:var(--muted)">Folder — click to drill in</div>'}${data.modified?`<div style="color:var(--muted);margin-top:3px">${new Date(data.modified).toLocaleDateString()}</div>`:''}`;
+  t.style.left=(evt.clientX+14)+'px';t.style.top=(evt.clientY-10)+'px';t.classList.add('show');
+}
+function hideTip(){document.getElementById('tooltip').classList.remove('show');}
+
+function fmtBytes(b){const u=['B','KB','MB','GB','TB'];let i=0,s=b;while(s>=1024&&i<u.length-1){s/=1024;i++;}return `${s.toFixed(i>0?1:0)} ${u[i]}`;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function showToast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>t.classList.remove('show'),3000);}
+
+window.addEventListener('resize',()=>{if(currentNode)renderTreemap(currentNode);});
+init();
+</script>
+</body>
+</html>
